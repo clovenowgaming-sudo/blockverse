@@ -1,0 +1,48 @@
+plugins {
+    id 'application'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+ext.gdxVersion = rootProject.findProperty('gdxVersion')
+ext.lwjglVersion = rootProject.findProperty('lwjglVersion')
+
+application {
+    mainClass = 'com.blockverse.desktop.Lwjgl3Launcher'
+}
+
+dependencies {
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:${gdxVersion}"
+    runtimeOnly "com.badlogicgames.gdx:gdx-platform:${gdxVersion}:natives-desktop"
+
+    // Bundle Windows x64 AND x86 natives in the desktop distribution.
+    // A matching Java runtime is still required to launch the matching architecture.
+    def lwjglModules = ['lwjgl', 'lwjgl-glfw', 'lwjgl-jemalloc', 'lwjgl-openal', 'lwjgl-opengl', 'lwjgl-stb']
+    lwjglModules.each { module ->
+        runtimeOnly "org.lwjgl:${module}:${lwjglVersion}:natives-windows"
+        runtimeOnly "org.lwjgl:${module}:${lwjglVersion}:natives-windows-x86"
+        runtimeOnly "org.lwjgl:${module}:${lwjglVersion}:natives-linux"
+        runtimeOnly "org.lwjgl:${module}:${lwjglVersion}:natives-macos"
+    }
+}
+
+tasks.named('run') {
+    workingDir = rootProject.file('assets')
+    standardInput = System.in
+    if (System.getProperty('os.name').toLowerCase().contains('mac')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+}
+
+tasks.register('dist', Jar) {
+    dependsOn configurations.runtimeClasspath
+    archiveFileName = "BlockVerse-desktop-${project.version}.jar"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest { attributes 'Main-Class': application.mainClass.get() }
+    from sourceSets.main.output
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+}

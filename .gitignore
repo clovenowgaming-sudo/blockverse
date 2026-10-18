@@ -1,0 +1,11 @@
+.gradle/
+**/build/
+**/out/
+**/bin/
+.idea/
+.vscode/
+local.properties
+*.iml
+.DS_Store
+android/libs/
+/assets/saves/

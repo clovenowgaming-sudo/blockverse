@@ -1,0 +1,59 @@
+plugins {
+    id 'com.android.application'
+}
+
+ext.gdxVersion = rootProject.findProperty('gdxVersion')
+
+android {
+    namespace 'com.blockverse.android'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.blockverse.android'
+        minSdk 21
+        targetSdk 36
+        versionCode 1
+        versionName project.version.toString()
+        ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
+    }
+
+    sourceSets {
+        main.jniLibs.srcDirs = ['libs']
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    packaging {
+        jniLibs { useLegacyPackaging = true }
+    }
+}
+
+configurations { natives }
+
+dependencies {
+    implementation "com.badlogicgames.gdx:gdx-backend-android:${gdxVersion}"
+    implementation project(':core')
+    natives "com.badlogicgames.gdx:gdx-platform:${gdxVersion}:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-platform:${gdxVersion}:natives-arm64-v8a"
+}
+
+tasks.register('copyAndroidNatives') {
+    doLast {
+        configurations.natives.files.each { archive ->
+            def abi = archive.name.contains('natives-armeabi-v7a') ? 'armeabi-v7a' :
+                      archive.name.contains('natives-arm64-v8a') ? 'arm64-v8a' : null
+            if (abi != null) {
+                copy {
+                    from zipTree(archive)
+                    into file("libs/${abi}")
+                    include '*.so'
+                }
+            }
+        }
+    }
+}
+
+tasks.named('preBuild').configure { dependsOn tasks.named('copyAndroidNatives') }
